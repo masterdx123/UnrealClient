@@ -17,6 +17,8 @@ class UNREALCLIENT1_API UNetActorComponent : public UActorComponent
 	int globalID;
 	UPROPERTY(EditAnywhere)
 	int localID;
+	UPROPERTY(EditAnywhere)
+	int HP = 100;
 
 
 

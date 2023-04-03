@@ -41,7 +41,7 @@ public:
 	FIPv4Address RemoteAddress;
 	uint16 RemotePort = 9050;
 	int32 BufferSize;
-	FString IP = "100.76.113.20";
+	FString IP = "100.76.113.2";
 
 	ISocketSubsystem* SocketSubsystem;
 

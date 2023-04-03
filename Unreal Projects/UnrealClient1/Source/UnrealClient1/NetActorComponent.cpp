@@ -27,7 +27,8 @@ void UNetActorComponent::SetLocalID(int32 lid) {
 UNetActorComponent::UNetActorComponent()
 {
 	globalID = 0;
-	localID = 0;
+	localID = 0; 
+	HP = 100;
 	isLocallyOwned = false;
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
@@ -69,14 +70,15 @@ FString UNetActorComponent::ToPacket() {
 	FRotator rotation = parentActor->GetActorRotation(); //unreal uses euler angles..
 	FQuat quaternionRotation = FQuat(rotation); //so we have to convert to Quaternion for Unity consistence
 
-	FString returnVal = FString::Printf(TEXT("Object data;%i;%f;%f;%f;%f;%f;%f;%f"), globalID,
+	FString returnVal = FString::Printf(TEXT("Object data;%i;%f;%f;%f;%f;%f;%f;%f;%i;"), globalID,
 		position.X,
 		position.Y,
 		position.Z,
 		quaternionRotation.X,
 		quaternionRotation.Y,
 		quaternionRotation.Z,
-		quaternionRotation.W
+		quaternionRotation.W,
+		HP
 	);
 	return returnVal;
 }
@@ -92,7 +94,7 @@ void UNetActorComponent::FromPacket(FString packet) {
 	TArray<FString> parsed;
 	packet.ParseIntoArray(parsed, TEXT(";"), false);
 
-	if (parsed.Num() == 10)
+	if (parsed.Num() == 11)
 	{
 		//*parsed[3].Replace(TEXT(","), TEXT("."));
 		AActor* parentActor = GetOwner();
