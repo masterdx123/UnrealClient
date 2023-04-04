@@ -34,6 +34,7 @@ public:
 	// Sets default values for this component's properties
 	UNetActorComponent();
 	bool GetIsLocallyOwned();
+	void ChangeHp(FString packet);
 
 protected:
 	// Called when the game starts
@@ -43,5 +44,6 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-		
+	UFUNCTION(BlueprintCallable, Category = "GetHp")
+		int GetCharaterHp();
 };

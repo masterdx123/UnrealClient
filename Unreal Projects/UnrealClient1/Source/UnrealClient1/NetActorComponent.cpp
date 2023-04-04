@@ -30,23 +30,23 @@ UNetActorComponent::UNetActorComponent()
 	localID = 0; 
 	HP = 100;
 	isLocallyOwned = false;
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
+	// Set this component to be initialized when the game starts, and to be ticked every frame. 
+
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
 }
+
 bool UNetActorComponent::GetIsLocallyOwned()
 {
 	return isLocallyOwned;
-};
+}
 
 
 // Called when the game starts
 void UNetActorComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	if (isLocallyOwned) {  //as before, we need a unique local ID
+	if (isLocallyOwned) {  //get the local ID
 		localID = lastLocalID;
 		lastLocalID++;
 	}
@@ -60,10 +60,14 @@ void UNetActorComponent::BeginPlay()
 void UNetActorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
 }
 
+int UNetActorComponent::GetCharaterHp()
+{
+	return HP;
+}
+
+//information to be sent to the server containing the object data
 FString UNetActorComponent::ToPacket() {
 	AActor* parentActor = GetOwner();
 	FVector position = parentActor->GetActorLocation();
@@ -83,12 +87,14 @@ FString UNetActorComponent::ToPacket() {
 	return returnVal;
 }
 
+//Get id from the server
 int32 UNetActorComponent::GlobalIDFromPacket(FString packet) {
 	TArray<FString> parsed;
 	packet.ParseIntoArray(parsed, TEXT(";"), false);
 	return FCString::Atoi(*parsed[1]);
 }
 
+//Get information on gameobject from the server and update the current information
 void UNetActorComponent::FromPacket(FString packet) {
 	packet = packet.Replace(TEXT(","), TEXT("."));
 	TArray<FString> parsed;
@@ -103,26 +109,24 @@ void UNetActorComponent::FromPacket(FString packet) {
 		parentActor->SetActorLocation(position);
 		parentActor->SetActorRotation(rotation);
 	}
-	else
+	else //if the packet received doesnt match show its bad data
 	{
 		UE_LOG(LogTemp, Warning, TEXT("bad packet data recieved"));
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Bad Packet Data REceived: ");
 	}
 	
-	/*
+	
+}
+
+//cahnge the hp of the object when taking damage
+void UNetActorComponent::ChangeHp(FString packet)
+{
 	TArray<FString> parsed;
 	packet.ParseIntoArray(parsed, TEXT(";"), false);
-	if (parsed.Num() == 9) {
-		AActor* parentActor = GetOwner();
-		FVector position = FVector(FCString::Atof(*parsed[2]), FCString::Atof(*parsed[3]), FCString::Atof(*parsed[4]));
-		FQuat rotation = FQuat(FCString::Atof(*parsed[5]), FCString::Atof(*parsed[6]), FCString::Atof(*parsed[7]), FCString::Atof(*parsed[8]));
-		parentActor->SetActorLocation(position);
-		parentActor->SetActorRotation(rotation);
-	}
-	else {
-		UE_LOG(LogTemp, Warning, TEXT("bad packet data recieved"));
-	}
-	*/
+	int dmg = FCString::Atoi(*parsed[2]);
+	HP -= dmg;
+	
 }
+;
 
 

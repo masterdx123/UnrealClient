@@ -8,10 +8,10 @@ ANetManager* ANetManager::singleton;
 
 TArray<UNetActorComponent*> ANetManager::localNetObjects;
 
-// Sets default values
+// Sets default values in constructor
 ANetManager::ANetManager()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.
 	PrimaryActorTick.bCanEverTick = true;
 	Socket = nullptr;
 
@@ -32,7 +32,7 @@ void ANetManager::PostInitializeComponents()
 
 	Super::PostInitializeComponents();
 	SocketSubsystem = nullptr;
-	//more macro code. We’re using Unreal’s low level generic networking (as opposed to it’s higher level game-oriented solution).
+	
 	if (SocketSubsystem == nullptr)	SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 
 	//packet and buffer sizes
@@ -52,7 +52,7 @@ void ANetManager::PostInitializeComponents()
 	{
 		if (Socket == nullptr)
 		{
-			//similar to C#, we use an API to build the socket based on configuration parameters
+			//configure parameters of socket
 			Socket = FUdpSocketBuilder(SocketDescription)
 				.AsNonBlocking()
 				.AsReusable()
@@ -71,9 +71,9 @@ void ANetManager::PostInitializeComponents()
 void ANetManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	localNetObjects.Empty(); //this empties the array, so it’s clear next time we start playmode
-	singleton = nullptr; //it becomes null for next time we play (otherwise it’ll point to the previously destroyed version from the last session
+	singleton = nullptr; //it becomes null for next time we press play 
 	Super::EndPlay(EndPlayReason);
-	ANetManager::localNetObjects.Empty(); //here
+	ANetManager::localNetObjects.Empty();
 	SocketSubsystem->DestroySocket(Socket);
 	Socket = nullptr;
 	SocketSubsystem = nullptr;
@@ -92,18 +92,21 @@ void ANetManager::AddNetObject(UNetActorComponent* component)
 
 void ANetManager::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
 
+	//keep sending messages to the server
+	Super::Tick(DeltaTime);
+	timer += DeltaTime;
 	for (UNetActorComponent* netObject : ANetManager::localNetObjects) {
 		if (netObject->GetIsLocallyOwned() && netObject->GetGlobalID() != 0) {
-			UE_LOG(LogTemp, Warning, TEXT("Sending: %s"), *netObject->ToPacket());
-			sendMessage(netObject->ToPacket());
+			if (timer > 0.8f)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Sending: %s"), *netObject->ToPacket());
+				sendMessage(netObject->ToPacket());
+				timer = 0;
+			}
 		}
 	}
 	Listen(); // Listen for messages
-
-	//FString t = "I'm an Unreal client!";
-	//sendMessage(t); // Send Message Test
 }
 
 void ANetManager::Listen()
@@ -112,7 +115,7 @@ void ANetManager::Listen()
 	uint32 Size;
 	while (Socket->HasPendingData(Size))
 	{
-
+		//receive data from server
 		uint8* Recv = new uint8[Size];
 		int32 BytesRead = 0;
 
@@ -125,8 +128,10 @@ void ANetManager::Listen()
 
 		FString data = ANSI_TO_TCHAR(ansiiData);
 
+		//show message from server on screen
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Message by UDP: " + data);
 
+		//if message is to assign Ids
 		if (data.Contains("Assigned UID:")) {
 
 			FString message, info;
@@ -153,10 +158,16 @@ void ANetManager::Listen()
 			}
 
 		}
-		else if (data.Contains("Object data;")) {
+		//if it the message relates to object data
+		else if (data.Contains("Object data;")) 
+		{
+
 			UE_LOG(LogTemp, Warning, TEXT("parsing state data"));
 			bool foundActor = false;
-			for (UNetActorComponent* netObject : ANetManager::localNetObjects) {
+			//loop gameobjects
+			for (UNetActorComponent* netObject : ANetManager::localNetObjects) 
+			{
+				//if gameobject id equale the one from the packet update information of the gameobject
 				if (netObject->GetGlobalID() == netObject->GlobalIDFromPacket(data) || netObject->GetGlobalID()==0) {
 					if (!netObject->GetIsLocallyOwned()) {
 						netObject->FromPacket(data);
@@ -164,7 +175,7 @@ void ANetManager::Listen()
 					foundActor = true;
 				}
 			}
-
+			//if the object was njot found spawn it adn set its data to be the one we got from the server
 			if (!foundActor) {
 				UE_LOG(LogTemp, Warning, TEXT("spawning"));
 				AActor* actor = GetWorld()->SpawnActor<AActor>(OtherPlayerAvatars, FVector::ZeroVector, FRotator::ZeroRotator);
@@ -174,14 +185,27 @@ void ANetManager::Listen()
 			}
 
 		}
+		//if message relates to the losing of hp 
+		else if (data.Contains("Id:;")) 
+		{
+			//loop gameobjects and change hp of the one that matches the id sent
+			for (UNetActorComponent* netObject : ANetManager::localNetObjects) {
+				if (netObject->GetGlobalID() == netObject->GlobalIDFromPacket(data) || netObject->GetGlobalID() == 0) {
+					
+					netObject->ChangeHp(data);					
+				}
+			}
+		}
 	}
 
 	
 }
 
-
+//send message function
 bool ANetManager::sendMessage(FString Message)
 {
+
+	//send message trough the socket
 	if (!Socket) return false;
 	int32 BytesSent;
 
@@ -193,7 +217,7 @@ bool ANetManager::sendMessage(FString Message)
 	bool success = Socket->SendTo((uint8*)TCHAR_TO_UTF8(serializedChar), size, BytesSent, *RemoteEndpoint.ToInternetAddr());
 	UE_LOG(LogTemp, Warning, TEXT("Sent message: %s : %s : Address - %s : BytesSent - %d"), *Message, (success ? TEXT("true") : TEXT("false")), *RemoteEndpoint.ToString(), BytesSent);
 	UE_LOG(LogTemp, Warning, TEXT("count: %d"), ANetManager::localNetObjects.Num());
-	//UE_LOG lets us log error messages, not dissimilar to Debug.Log
+	
 
 	if (success && BytesSent > 0) return true;
 	else return false;

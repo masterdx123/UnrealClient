@@ -18,14 +18,16 @@ class  ANetManager : public AActor
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AActor> OtherPlayerAvatars;
+
+	float timer = 0;
 public:
 	ANetManager();
 	~ANetManager();
 
 	static ANetManager* singleton;
-	static TArray<UNetActorComponent*> localNetObjects; //this line here!
+	static TArray<UNetActorComponent*> localNetObjects; 
 
-	void AddNetObject(UNetActorComponent* component);
+	void AddNetObject(UNetActorComponent* component); //add a new netobject
 
 	FSocket* Socket;
 
@@ -41,7 +43,7 @@ public:
 	FIPv4Address RemoteAddress;
 	uint16 RemotePort = 9050;
 	int32 BufferSize;
-	FString IP = "100.76.113.2";
+	FString IP = "100.76.113.15";
 
 	ISocketSubsystem* SocketSubsystem;
 
@@ -56,7 +58,6 @@ public:
 
 	void Listen();
 
-	//we’ll think about blueprint integration later, but this is the starting bit
 	UFUNCTION(BlueprintCallable, Category = "UDPNetworking")
 		bool sendMessage(FString Message);
 
