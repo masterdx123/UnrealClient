@@ -98,7 +98,7 @@ void ANetManager::Tick(float DeltaTime)
 	timer += DeltaTime;
 	for (UNetActorComponent* netObject : ANetManager::localNetObjects) {
 		if (netObject->GetIsLocallyOwned() && netObject->GetGlobalID() != 0) {
-			if (timer > 0.8f)
+			if (timer > 0.1f)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Sending: %s"), *netObject->ToPacket());
 				sendMessage(netObject->ToPacket());
